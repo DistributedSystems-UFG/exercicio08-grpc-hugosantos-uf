@@ -18,6 +18,12 @@ service EmployeeService {
   rpc DeleteEmployee (EmployeeID) returns (StatusReply) {}
   // List all employees
   rpc ListAllEmployees (EmptyMessage) returns (EmployeeDataList) {}
+  // Count all employees
+  rpc CountEmployees (EmptyMessage) returns (EmployeeCount) {}
+  // List employees by title/position
+  rpc ListEmployeesByTitle (EmployeeTitleQuery) returns (EmployeeDataList) {}
+  // Update an employee's name
+  rpc UpdateEmployeeName (EmployeeNameUpdate) returns (StatusReply) {}
   
 }
 
@@ -38,6 +44,19 @@ message EmployeeID {
 message EmployeeTitleUpdate {
   uint32 id = 1;
   string title = 2;
+}
+
+message EmployeeNameUpdate {
+  uint32 id = 1;
+  string name = 2;
+}
+
+message EmployeeTitleQuery {
+  string title = 1;
+}
+
+message EmployeeCount {
+  uint32 count = 1;
 }
 
 message EmptyMessage{}

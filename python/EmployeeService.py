@@ -20,6 +20,12 @@ empDB=[
  }
  ]
 
+def find_employee(employee_id):
+  matches = [emp for emp in empDB if emp['id'] == employee_id]
+  if len(matches) == 0:
+    return None
+  return matches[0]
+
 class EmployeeServer(EmployeeService_pb2_grpc.EmployeeServiceServicer):
 
   def CreateEmployee(self, request, context):
@@ -32,20 +38,28 @@ class EmployeeServer(EmployeeService_pb2_grpc.EmployeeServiceServicer):
     return EmployeeService_pb2.StatusReply(status='OK')
 
   def GetEmployeeDataFromID(self, request, context):
-    usr = [ emp for emp in empDB if (emp['id'] == request.id) ] 
-    return EmployeeService_pb2.EmployeeData(id=usr[0]['id'], name=usr[0]['name'], title=usr[0]['title'])
+    usr = find_employee(request.id)
+    if usr is None:
+      context.set_code(grpc.StatusCode.NOT_FOUND)
+      context.set_details('Employee not found')
+      return EmployeeService_pb2.EmployeeData()
+
+    return EmployeeService_pb2.EmployeeData(id=usr['id'], name=usr['name'], title=usr['title'])
 
   def UpdateEmployeeTitle(self, request, context):
-    usr = [ emp for emp in empDB if (emp['id'] == request.id) ]
-    usr[0]['title'] = request.title
+    usr = find_employee(request.id)
+    if usr is None:
+      return EmployeeService_pb2.StatusReply(status='NOK')
+
+    usr['title'] = request.title
     return EmployeeService_pb2.StatusReply(status='OK')
 
   def DeleteEmployee(self, request, context):
-    usr = [ emp for emp in empDB if (emp['id'] == request.id) ]
-    if len(usr) == 0:
+    usr = find_employee(request.id)
+    if usr is None:
       return EmployeeService_pb2.StatusReply(status='NOK')
 
-    empDB.remove(usr[0])
+    empDB.remove(usr)
     return EmployeeService_pb2.StatusReply(status='OK')
 
   def ListAllEmployees(self, request, context):
@@ -54,6 +68,25 @@ class EmployeeServer(EmployeeService_pb2_grpc.EmployeeServiceServicer):
       emp_data = EmployeeService_pb2.EmployeeData(id=item['id'], name=item['name'], title=item['title']) 
       list.employee_data.append(emp_data)
     return list
+
+  def CountEmployees(self, request, context):
+    return EmployeeService_pb2.EmployeeCount(count=len(empDB))
+
+  def ListEmployeesByTitle(self, request, context):
+    result = EmployeeService_pb2.EmployeeDataList()
+    for item in empDB:
+      if item['title'].lower() == request.title.lower():
+        emp_data = EmployeeService_pb2.EmployeeData(id=item['id'], name=item['name'], title=item['title'])
+        result.employee_data.append(emp_data)
+    return result
+
+  def UpdateEmployeeName(self, request, context):
+    usr = find_employee(request.id)
+    if usr is None:
+      return EmployeeService_pb2.StatusReply(status='NOK')
+
+    usr['name'] = request.name
+    return EmployeeService_pb2.StatusReply(status='OK')
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
